@@ -1023,33 +1023,7 @@ const GD = {
   ready: false
 };
 
-// Load Google Identity Services script
-function loadGIS() {
-  return new Promise((res, rej) => {
-    if (window.google?.accounts) { res(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
-  });
-}
-
-// Load GAPI (Drive REST)
-function loadGAPI() {
-  return new Promise((res, rej) => {
-    if (window.gapi?.client) { res(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://apis.google.com/js/api.js';
-    s.onload = () => {
-      gapi.load('client', async () => {
-        await gapi.client.init({});
-        res();
-      });
-    };
-    s.onerror = rej;
-    document.head.appendChild(s);
-  });
-}
+// Google Drive uses redirect OAuth — no extra scripts needed
 
 function setDriveUI(state) {
   // state: 'off' | 'connected' | 'syncing' | 'error'
@@ -1071,46 +1045,49 @@ function setDriveUI(state) {
 }
 
 async function driveSignIn() {
-  // If already connected, sign out
+  // Sign out if already connected
   if (GD.token) {
-    google.accounts.oauth2.revoke(GD.token, () => {});
     GD.token = null; GD.fileId = null; GD.user = null; GD.ready = false;
+    localStorage.removeItem('vb_gd_token');
     setDriveUI('off'); toast('Signed out of Google Drive');
     return;
   }
-
-  toast('Opening Google sign-in…');
-  try {
-    await loadGIS();
-    await loadGAPI();
-  } catch(e) {
-    toast('Could not load Google APIs. Check your internet connection.','err');
-    return;
-  }
-
-  // Use token client for OAuth2
-  const client = google.accounts.oauth2.initTokenClient({
+  // Redirect-based OAuth — works on all mobile browsers, no popup needed
+  const base = window.location.href.split('#')[0];
+  const params = new URLSearchParams({
     client_id: GD.CLIENT_ID,
+    redirect_uri: base,
+    response_type: 'token',
     scope: GD.SCOPES,
-    callback: async (resp) => {
-      if (resp.error) { toast('Google sign-in failed: ' + resp.error, 'err'); setDriveUI('error'); return; }
-      GD.token = resp.access_token;
-      // Get user info
-      try {
-        const uResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: 'Bearer ' + GD.token }
-        });
-        const u = await uResp.json();
-        GD.user = u.name || u.email || 'Google account';
-      } catch(e) { GD.user = 'Google account'; }
-      GD.ready = true;
-      setDriveUI('connected');
-      toast('Connected to Google Drive ✓');
-      // Auto-load existing data from Drive
-      await driveLoad();
-    }
+    include_granted_scopes: 'true',
+    state: 'drive_auth'
   });
-  client.requestAccessToken({ prompt: 'consent' });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+}
+
+// Called on page load — checks if returning from Google OAuth redirect
+async function checkOAuthRedirect() {
+  const hash = window.location.hash;
+  if (!hash.includes('access_token')) return;
+  const params = new URLSearchParams(hash.slice(1));
+  const token = params.get('access_token');
+  if (!token) return;
+  // Clean token from address bar
+  history.replaceState(null, '', window.location.pathname + window.location.search);
+  GD.token = token;
+  localStorage.setItem('vb_gd_token', token);
+  try {
+    const uResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const u = await uResp.json();
+    GD.user = u.name || u.email || 'Google account';
+  } catch(e) { GD.user = 'Google account'; }
+  GD.ready = true;
+  setDriveUI('connected');
+  toast('Connected to Google Drive ✓');
+  navigate('drive');
+  await driveLoad();
 }
 
 // Find the vitabrief-data.json file in Drive
@@ -1251,6 +1228,8 @@ setDriveUI('off');
 load();
 renderAll();
 g('bDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+// Check if returning from Google OAuth redirect (mobile flow)
+checkOAuthRedirect();
 </script>
 </body>
 </html>
