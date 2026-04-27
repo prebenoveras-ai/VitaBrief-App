@@ -1053,7 +1053,8 @@ async function driveSignIn() {
     return;
   }
   // Redirect-based OAuth — works on all mobile browsers, no popup needed
-  const REDIRECT = 'https://prebenoveras-ai.github.io/VitaBrief-App/';
+  // Use exact current URL as redirect (strips hash, keeps path as-is)
+  const REDIRECT = window.location.origin + window.location.pathname;
   const params = new URLSearchParams({
     client_id: GD.CLIENT_ID,
     redirect_uri: REDIRECT,
