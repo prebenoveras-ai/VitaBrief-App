@@ -1057,56 +1057,54 @@ async function driveSignIn() {
     GD.token = null; GD.fileId = null; GD.user = null; GD.ready = false;
     localStorage.removeItem('vb_gd_token');
     localStorage.removeItem('vb_gd_user');
-    setDriveUI('off'); toast('Signed out of Google Drive');
+    setDriveUI('off');
+    toast('Signed out');
     return;
   }
-  // Pure redirect flow - most reliable across all browsers and devices
-  // Save app state first so we don't lose data during redirect
+  // Always use redirect — popup never works reliably
   save();
-  // Build exact redirect URI from current browser location
   const REDIRECT = window.location.origin + window.location.pathname;
-  localStorage.setItem('vb_oauth_redirect', REDIRECT);
-  const params = new URLSearchParams({
-    client_id: GD.CLIENT_ID,
-    redirect_uri: REDIRECT,
-    response_type: 'token',
-    scope: GD.SCOPES,
-    prompt: 'select_account'
-  });
-  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+  const url = 'https://accounts.google.com/o/oauth2/v2/auth'
+    + '?client_id=' + encodeURIComponent(GD.CLIENT_ID)
+    + '&redirect_uri=' + encodeURIComponent(REDIRECT)
+    + '&response_type=token'
+    + '&scope=' + encodeURIComponent(GD.SCOPES)
+    + '&prompt=select_account';
+  window.location.assign(url);
 }
 
 async function handleToken(token) {
   GD.token = token;
   localStorage.setItem('vb_gd_token', token);
   try {
-    const u = await (await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: 'Bearer ' + token }
-    })).json();
+    });
+    const u = await r.json();
     GD.user = u.name || u.email || 'Google account';
     localStorage.setItem('vb_gd_user', GD.user);
-  } catch(e) { GD.user = localStorage.getItem('vb_gd_user') || 'Google account'; }
+  } catch(e) {
+    GD.user = localStorage.getItem('vb_gd_user') || 'Google account';
+  }
   GD.ready = true;
   setDriveUI('connected');
-  toast('Connected as ' + GD.user + ' ✓');
+  toast('Signed in as ' + GD.user + ' ✓');
   await driveLoad();
 }
 
 async function checkOAuthRedirect() {
-  // Check for token in URL hash (returning from Google redirect)
-  const hash = window.location.hash;
-  if (hash.includes('access_token')) {
-    const params = new URLSearchParams(hash.slice(1));
-    const token = params.get('access_token');
+  // Case 1: returning from Google redirect with token in hash
+  if (window.location.hash.includes('access_token')) {
+    const p = new URLSearchParams(window.location.hash.slice(1));
+    const token = p.get('access_token');
     if (token) {
-      // Clean URL immediately
       history.replaceState(null, '', window.location.pathname);
       await handleToken(token);
       navigate('drive');
       return;
     }
   }
-  // Check for saved token in localStorage (returning user)
+  // Case 2: token saved from previous session
   const saved = localStorage.getItem('vb_gd_token');
   if (saved) {
     try {
@@ -1123,7 +1121,6 @@ async function checkOAuthRedirect() {
         return;
       }
     } catch(e) {}
-    // Token expired or invalid - clear it
     localStorage.removeItem('vb_gd_token');
     localStorage.removeItem('vb_gd_user');
   }
