@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<title>VitaBrief Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f0f10;--s1:#161618;--s2:#1d1d1f;--s3:#252527;
+  --border:#2e2e31;--border2:#3a3a3e;
+  --text:#ececed;--muted:#8a8a90;--faint:#4a4a50;
+  --green:#34d399;--green-bg:rgba(52,211,153,.1);--green-border:rgba(52,211,153,.25);
+  --blue:#60a5fa;--blue-bg:rgba(96,165,250,.1);
+  --orange:#fb923c;--orange-bg:rgba(251,146,60,.1);
+  --purple:#a78bfa;--purple-bg:rgba(167,139,250,.1);
+  --red:#f87171;--red-bg:rgba(248,113,113,.1);
+  --yellow:#fbbf24;--yellow-bg:rgba(251,191,36,.1);
+  --r:10px;--rl:16px;--rf:999px;
+  --mono:'IBM Plex Mono',monospace;--body:'Figtree',sans-serif;
+}
+body{font-family:var(--body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;min-height:100dvh;overflow-x:hidden}
+button,input,textarea,select{font:inherit;color:inherit;border:none;outline:none;background:none;cursor:pointer}
+a{color:var(--green);text-decoration:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── LAYOUT ── */
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100dvh}
+.sidebar{background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100dvh;overflow-y:auto}
+.content{display:flex;flex-direction:column;min-height:100dvh}
+
+/* ── BRAND ── */
+.brand{padding:20px 16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px}
+.brand-mark{width:36px;height:36px;border-radius:10px;background:var(--green-bg);border:1px solid var(--green-border);display:grid;place-items:center;color:var(--green);font-weight:600;font-size:13px;flex-shrink:0;font-family:var(--mono)}
+.brand-name{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.brand-ver{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:1px}
+
+/* ── NAV ── */
+.nav{padding:12px 8px;flex:1}
+.nav-group{margin-bottom:20px}
+.nav-label{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);padding:0 8px;margin-bottom:5px;font-weight:600}
+.nav-btn{width:100%;display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r);font-size:13px;color:var(--muted);margin-bottom:2px;transition:.12s;text-align:left}
+.nav-btn:hover{background:var(--s2);color:var(--text)}
+.nav-btn.on{background:var(--green-bg);color:var(--green);font-weight:500}
+.nav-btn .ico{width:18px;text-align:center;font-size:14px}
+.nav-pill{margin-left:auto;font-size:10px;font-family:var(--mono);background:var(--s3);color:var(--muted);padding:1px 6px;border-radius:var(--rf)}
+
+.sidebar-bot{padding:12px;border-top:1px solid var(--border)}
+.theme-row{display:flex;align-items:center;justify-content:space-between;padding:8px 4px}
+.theme-row span{font-size:12px;color:var(--muted)}
+.toggle{width:36px;height:20px;border-radius:10px;background:var(--s3);border:1px solid var(--border2);cursor:pointer;position:relative;transition:.2s}
+.toggle.on{background:var(--green-bg);border-color:var(--green-border)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:.2s}
+.toggle.on::after{left:18px;background:var(--green)}
+
+/* ── TOPBAR ── */
+.topbar{background:color-mix(in srgb,var(--bg) 80%,transparent);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:20;flex-shrink:0}
+.topbar-left h2{font-size:18px;font-weight:600;letter-spacing:-.02em}
+.topbar-left p{font-size:12px;color:var(--muted);margin-top:2px}
+.topbar-right{display:flex;gap:8px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--rf);font-size:13px;font-weight:500;transition:.12s;white-space:nowrap}
+.btn-green{background:var(--green);color:#0f0f10}
+.btn-green:hover{opacity:.9}
+.btn-ghost{background:var(--s2);border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-ico{padding:9px;width:38px;height:38px;justify-content:center;border-radius:var(--r)}
+
+/* ── PAGE ── */
+.page{display:none;padding:22px 24px;flex-direction:column;gap:18px}
+.page.on{display:flex}
+
+/* ── PANEL ── */
+.panel{background:var(--s1);border:1px solid var(--border);border-radius:var(--rl);padding:18px}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.ph h3{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.ph p{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* ── GRIDS ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+
+/* ── METRIC TILE ── */
+.tile{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center}
+.tile-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600}
+.tile-val{font-size:24px;font-weight:600;font-family:var(--mono);margin-top:5px;letter-spacing:-.03em}
+.tile-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── DROPZONE ── */
+.dz{border:1.5px dashed var(--green-border);border-radius:var(--rl);padding:30px 20px;text-align:center;background:var(--green-bg);cursor:pointer;transition:.15s;position:relative}
+.dz:hover,.dz.drag{border-color:var(--green);background:rgba(52,211,153,.15)}
+.dz input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.dz-icon{font-size:36px;margin-bottom:10px}
+.dz h3{font-size:16px;font-weight:600;margin-bottom:6px}
+.dz p{font-size:13px;color:var(--muted);max-width:40ch;margin:0 auto 16px}
+
+/* ── UPLOAD CARDS ── */
+.ucard{display:grid;grid-template-columns:70px 1fr auto;gap:12px;align-items:start;padding:13px;background:var(--s2);border-radius:var(--r);border:1px solid var(--border);margin-bottom:8px;transition:.12s}
+.ucard:hover{border-color:var(--border2)}
+.uthumb{width:70px;height:70px;border-radius:8px;overflow:hidden;background:var(--s3);display:grid;place-items:center;font-size:26px;flex-shrink:0}
+.uthumb img{width:100%;height:100%;object-fit:cover}
+.uname{font-size:13px;font-weight:600}
+.udesc{font-size:11px;color:var(--muted);margin-top:2px}
+.uai{font-size:12px;color:var(--green);margin-top:5px;line-height:1.55;font-style:italic}
+.ufacts{font-size:10px;color:var(--muted);font-family:var(--mono);background:var(--s3);padding:5px 8px;border-radius:6px;margin-top:5px;line-height:1.5}
+.ubadges{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:var(--rf);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.b-run{background:var(--green-bg);color:var(--green)}
+.b-strength{background:var(--purple-bg);color:var(--purple)}
+.b-food{background:var(--yellow-bg);color:var(--yellow)}
+.b-recovery{background:var(--blue-bg);color:var(--blue)}
+.b-ride,.b-walk{background:var(--orange-bg);color:var(--orange)}
+.b-summary,.b-activity{background:var(--s3);color:var(--muted)}
+.b-src{background:var(--s3);color:var(--muted)}
+.b-ai{background:var(--green-bg);color:var(--green)}
+.delbtn{opacity:0;background:var(--red-bg);color:var(--red);border-radius:6px;padding:3px 7px;font-size:11px;font-weight:600;transition:.12s;flex-shrink:0}
+.ucard:hover .delbtn{opacity:1}
+
+/* ── FORM ── */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:grid;gap:5px}
+.field label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.field input,.field select,.field textarea{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;font-size:13px;width:100%;transition:.12s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
+.field textarea{min-height:90px;resize:vertical}
+.field select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%238a8a90' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:calc(100% - 11px) center}
+
+/* ── SLIDERS ── */
+.srow{display:flex;align-items:center;gap:10px;padding:5px 0}
+.slabel{width:85px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;flex-shrink:0;font-weight:600}
+.srow input[type=range]{flex:1;height:4px;border-radius:99px;appearance:none;background:var(--border2);cursor:pointer;accent-color:var(--green)}
+.srow input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--green);cursor:pointer;box-shadow:0 0 0 3px var(--green-bg)}
+.sval{width:24px;text-align:right;font-family:var(--mono);font-size:13px;color:var(--green);font-weight:500}
+
+/* ── BRIEF ── */
+.brief-hero{background:linear-gradient(140deg,rgba(52,211,153,.08),var(--s1));border:1px solid var(--green-border);border-radius:var(--rl);padding:22px;position:relative;overflow:hidden}
+.brief-hero::after{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(52,211,153,.07),transparent 70%);pointer-events:none}
+.bh-title{font-size:26px;font-weight:600;letter-spacing:-.03em;margin-bottom:4px}
+.bh-date{font-size:12px;color:var(--muted);margin-bottom:16px;font-family:var(--mono)}
+.blines{display:grid;gap:7px}
+.bline{padding:9px 14px;border-left:2px solid var(--green);background:rgba(52,211,153,.04);border-radius:0 8px 8px 0;font-size:13px;color:var(--muted);line-height:1.65}
+.bline b{color:var(--text);font-weight:600}
+
+/* ── CHAT ── */
+.chat-wrap{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;margin-bottom:12px}
+.cmsg{display:flex;gap:9px;align-items:flex-start}
+.cav{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;flex-shrink:0;font-family:var(--mono)}
+.cav.ai{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.cav.me{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(96,165,250,.25)}
+.cbubble{background:var(--s2);border:1px solid var(--border);border-radius:4px 10px 10px 10px;padding:9px 13px;font-size:13px;line-height:1.6;flex:1;max-width:calc(100% - 42px)}
+.cmsg.me .cbubble{background:var(--blue-bg);border-color:rgba(96,165,250,.2);border-radius:10px 4px 10px 10px}
+.typing{display:inline-flex;gap:3px;padding:3px 0}
+.typing span{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.cinput-row{display:flex;gap:8px}
+.cinput-row input{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:var(--rf);padding:10px 14px;font-size:13px}
+.cinput-row input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
+
+/* ── QUICK BTNS ── */
+.qbtns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.qbtn{font-size:12px;padding:5px 11px;border-radius:var(--rf);background:var(--s2);border:1px solid var(--border);color:var(--muted);transition:.12s}
+.qbtn:hover{color:var(--text);border-color:var(--border2)}
+
+/* ── HISTORY ── */
+.hcard{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px}
+.hcard:hover{border-color:var(--border2)}
+.hinfo h4{font-size:13px;font-weight:600}
+.hinfo p{font-size:11px;color:var(--muted);margin-top:2px}
+.hbadges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.hactions{display:flex;gap:6px;flex-shrink:0}
+
+/* ── BARS ── */
+.brow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.blabel{width:72px;font-size:11px;color:var(--muted);flex-shrink:0}
+.btrack{flex:1;height:7px;background:var(--s3);border-radius:99px;overflow:hidden}
+.bfill{height:100%;border-radius:99px;transition:.4s}
+.bval{width:30px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* ── TIMELINE ── */
+.tlwrap{position:relative}
+.tlwrap::before{content:'';position:absolute;left:13px;top:4px;bottom:4px;width:1px;background:var(--border)}
+.tlitem{display:flex;gap:12px;padding:8px 0;position:relative}
+.tldot{width:26px;height:26px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:grid;place-items:center;font-size:12px;flex-shrink:0;z-index:1}
+.tltitle{font-size:13px;font-weight:600}
+.tlsub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── TOAST ── */
+.tcontainer{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:7px;z-index:200}
+.toast{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:10px 15px;font-size:13px;transform:translateX(120%);transition:.25s;max-width:260px}
+.toast.show{transform:translateX(0)}
+.toast.ok{border-color:var(--green-border);color:var(--green)}
+.toast.err{border-color:rgba(248,113,113,.4);color:var(--red)}
+
+/* ── LOADING ── */
+.loading{position:fixed;inset:0;background:rgba(15,15,16,.85);backdrop-filter:blur(6px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:100}
+.loading.on{display:flex}
+.spin{width:34px;height:34px;border:2.5px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .65s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{font-size:13px;color:var(--muted)}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:36px 16px;color:var(--faint)}
+.empty-ico{font-size:34px;margin-bottom:10px}
+.empty h4{font-size:14px;color:var(--muted);margin-bottom:5px}
+.empty p{font-size:12px;max-width:26ch;margin:0 auto}
+
+/* ── MOBILE NAV ── */
+.mobnav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--s1);border-top:1px solid var(--border);padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:50}
+.mobitems{display:flex;justify-content:space-around}
+.mobitem{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 10px;font-size:10px;color:var(--muted);min-width:52px;border-radius:8px;transition:.12s}
+.mobitem.on{color:var(--green)}
+.mobitem .mico{font-size:18px}
+
+/* ── SEARCH ── */
+.search-wrap{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:var(--rf);padding:0 12px;transition:.12s}
+.search-wrap:focus-within{border-color:var(--green)}
+.search-wrap input{background:none;border:none;padding:8px 0;font-size:13px;flex:1;outline:none}
+
+/* ── RESPONSIVE ── */
+@media(max-width:860px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .mobnav{display:block}
+  .content{padding-bottom:calc(68px + env(safe-area-inset-bottom))}
+  .page{padding:14px 14px}
+  .g2,.g4,.fg{grid-template-columns:1fr 1fr}
+  .ucard{grid-template-columns:56px 1fr auto}
+  .topbar{padding:12px 14px}
+}
+@media(max-width:520px){
+  .g4{grid-template-columns:1fr 1fr}
+  .g2,.fg{grid-template-columns:1fr}
+  .topbar-right .btn span{display:none}
+}
+
+/* ── GOOGLE DRIVE PANEL ── */
+.drive-bar{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:0}
+.drive-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0}
+.drive-name{font-size:12px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drive-status{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.drive-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.drive-dot.off{background:var(--faint)}
+.drive-dot.sync{background:var(--yellow);animation:pulse .7s infinite alternate}
+@keyframes pulse{to{opacity:.3}}
+
+/* ── LIGHT MODE ── */
+[data-light]{
+  --bg:#f5f4f0;--s1:#fefdfb;--s2:#f0eeea;--s3:#e5e2dc;
+  --border:#d8d4cc;--border2:#c5c0b5;
+  --text:#1a1a1a;--muted:#6b6860;--faint:#b0aca4;
+  --green:#0d7a52;--green-bg:rgba(13,122,82,.07);--green-border:rgba(13,122,82,.2);
+  --blue:#1d5fa8;--blue-bg:rgba(29,95,168,.07);
+  --orange:#c2520a;--orange-bg:rgba(194,82,10,.08);
+  --purple:#5b35b5;--purple-bg:rgba(91,53,181,.07);
+  --red:#c0392b;--red-bg:rgba(192,57,43,.08);
+  --yellow:#9a6500;--yellow-bg:rgba(154,101,0,.08);
+}
+</style>
+</head>
+<body>
+
+<div class="tcontainer" id="tc"></div>
+<div class="loading" id="ld"><div class="spin"></div><p id="ldtxt">Analyzing…</p></div>
+
+<div class="shell">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">VB</div>
+    <div>
+      <div class="brand-name">VitaBrief Pro</div>
+      <div class="brand-ver">prebenoveras-ai.github.io</div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-group">
+      <div class="nav-label">Today</div>
+      <button class="nav-btn on" data-pg="today"><span class="ico">📋</span> Daily Brief <span class="nav-pill" id="nb1">0</span></button>
+      <button class="nav-btn" data-pg="upload"><span class="ico">📸</span> Upload</button>
+      <button class="nav-btn" data-pg="checkin"><span class="ico">✏️</span> Check-In</button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Insights</div>
+      <button class="nav-btn" data-pg="ai"><span class="ico">🤖</span> AI Chat</button>
+      <button class="nav-btn" data-pg="trends"><span class="ico">📈</span> Trends</button>
+      <button class="nav-btn" data-pg="history"><span class="ico">🗂️</span> History <span class="nav-pill" id="nb2">0</span></button>
+    </div>
+  </nav>
+  <div class="sidebar-bot">
+    <div style="margin-bottom:10px">
+      <div class="nav-label" style="padding:0 4px;margin-bottom:6px">Google Drive Sync</div>
+      <div class="drive-bar" id="driveBar">
+        <div class="drive-dot off" id="driveDot"></div>
+        <div style="flex:1;min-width:0">
+          <div class="drive-name" id="driveName">Not connected</div>
+          <div class="drive-status" id="driveStatus">Tap to sign in</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px">
+        <button class="btn btn-ghost btn-sm" id="driveSignBtn" style="justify-content:center">🔐 Sign In</button>
+        <button class="btn btn-ghost btn-sm" id="driveSyncBtn" style="justify-content:center" disabled>☁️ Sync</button>
+      </div>
+      <div style="font-size:10px;color:var(--faint);margin-top:6px;line-height:1.5;padding:0 2px">Saves to <b style="color:var(--muted)">vitabrief-data.json</b> in your Drive. Works on any device.</div>
+    </div>
+    <div class="theme-row">
+      <span>Light mode</span>
+      <div class="toggle" id="themeBtn"></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <h2 id="ptitle">Daily Brief</h2>
+      <p id="psub">Today's health picture at a glance</p>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost btn-sm" id="exportBtn">💾 Export</button>
+      <button class="btn btn-green btn-sm" id="saveBtn">✅ Save Day</button>
+    </div>
+  </header>
+
+  <!-- TODAY -->
+  <div class="page on" id="pg-today">
+    <div class="brief-hero">
+      <div class="bh-title" id="bTitle">Today's Brief</div>
+      <div class="bh-date" id="bDate"></div>
+      <div class="blines" id="bLines"><div class="bline">Fill in your check-in and upload screenshots to generate your brief.</div></div>
+    </div>
+    <div class="g4">
+      <div class="tile"><div class="tile-label">Mood</div><div class="tile-val" id="tMood">—</div><div class="tile-sub">Today</div></div>
+      <div class="tile"><div class="tile-label">Sleep</div><div class="tile-val" id="tSleep">—</div><div class="tile-sub">Hours</div></div>
+      <div class="tile"><div class="tile-label">Uploads</div><div class="tile-val" id="tUpl">0</div><div class="tile-sub">Today</div></div>
+      <div class="tile"><div class="tile-label">Energy</div><div class="tile-val" id="tEnergy">—</div><div class="tile-sub">Level</div></div>
+    </div>
+    <div class="g2">
+      <div class="panel"><div class="ph"><div><h3>Timeline</h3><p>Today's activity log</p></div></div><div class="tlwrap" id="timeline"><div class="empty"><div class="empty-ico">🕐</div><p>Upload screenshots to build your timeline</p></div></div></div>
+      <div class="panel"><div class="ph"><div><h3>Pattern Feedback</h3><p>Insights from your history</p></div></div><div class="blines" id="patterns"><div class="bline">Save a few days to see patterns here.</div></div></div>
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="page" id="pg-upload">
+    <div class="panel">
+      <div class="ph"><div><h3>Upload Screenshots</h3><p>Samsung Health · Strava · MyFitnessPal · Lyfta · any health app</p></div></div>
+      <div class="dz" id="dz">
+        <input type="file" id="fi" accept="image/*,text/*,.csv,.json" multiple/>
+        <div class="dz-icon">📲</div>
+        <h3>Drop screenshots here</h3>
+        <p>OCR reads your screenshots automatically — distance, pace, calories, sleep, macros — then classifies and summarizes them.</p>
+        <button class="btn btn-green" type="button" onclick="document.getElementById('fi').click()">Choose files</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph">
+        <div><h3>Uploads Today</h3><p id="uplSub">0 items</p></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="search-wrap"><input id="searchQ" placeholder="Search uploads…"/></div>
+          <button class="btn btn-ghost btn-sm btn-ico" id="clearUplBtn" title="Clear all">🗑️</button>
+        </div>
+      </div>
+      <div id="uplList"><div class="empty"><div class="empty-ico">📸</div><h4>No uploads yet</h4><p>Upload screenshots to get started</p></div></div>
+    </div>
+  </div>
+
+  <!-- CHECKIN -->
+  <div class="page" id="pg-checkin">
+    <div class="panel">
+      <div class="ph"><div><h3>Daily Check-In</h3><p>How are you feeling today?</p></div></div>
+      <div class="fg" style="margin-bottom:16px">
+        <div class="field"><label>Day title</label><input id="fTitle" placeholder="e.g. Long run + rest day"/></div>
+        <div class="field"><label>Main focus</label><select id="fFocus"><option>Training + recovery</option><option>Strength</option><option>Cardio</option><option>Active recovery</option><option>Full rest</option><option>Nutrition focus</option><option>Race / competition day</option><option>Deload week</option></select></div>
+        <div class="field"><label>Sleep (hours)</label><input id="fSleep" type="number" step="0.5" min="0" max="24" placeholder="7.5"/></div>
+        <div class="field"><label>Protein (g)</label><input id="fProtein" type="number" placeholder="150"/></div>
+        <div class="field"><label>Calories (kcal)</label><input id="fCal" type="number" placeholder="2400"/></div>
+        <div class="field"><label>Steps</label><input id="fSteps" type="number" placeholder="8000"/></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:10px">How do you feel? (1 = poor · 5 = great)</div>
+      <div id="sliders">
+        <div class="srow"><span class="slabel">Mood</span><input type="range" id="sMood" min="1" max="5" value="3" step="1"/><span class="sval" id="vMood">3</span></div>
+        <div class="srow"><span class="slabel">Energy</span><input type="range" id="sEnergy" min="1" max="5" value="3" step="1"/><span class="sval" id="vEnergy">3</span></div>
+        <div class="srow"><span class="slabel">Sleep Q</span><input type="range" id="sSleepQ" min="1" max="5" value="3" step="1"/><span class="sval" id="vSleepQ">3</span></div>
+        <div class="srow"><span class="slabel">Soreness</span><input type="range" id="sSore" min="1" max="5" value="2" step="1"/><span class="sval" id="vSore">2</span></div>
+        <div class="srow"><span class="slabel">Stress</span><input type="range" id="sStress" min="1" max="5" value="2" step="1"/><span class="sval" id="vStress">2</span></div>
+        <div class="srow"><span class="slabel">Digestion</span><input type="range" id="sDig" min="1" max="5" value="3" step="1"/><span class="sval" id="vDig">3</span></div>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Journal note</label><textarea id="fJournal" placeholder="How did today feel? Any context — illness, travel, PR, race notes…"></textarea></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-green" id="genBtn">🔄 Generate Brief</button>
+        <button class="btn btn-ghost" id="noteBtn">📝 Add as Log Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI CHAT -->
+  <div class="page" id="pg-ai">
+    <div class="panel">
+      <div class="ph"><div><h3>AI Health Coach</h3><p>Ask anything about your training, recovery, nutrition, and patterns</p></div><span class="badge b-ai">Claude AI</span></div>
+      <div class="qbtns">
+        <button class="qbtn" onclick="qa('How did I train today?')">Training today?</button>
+        <button class="qbtn" onclick="qa('How is my recovery looking?')">Recovery status</button>
+        <button class="qbtn" onclick="qa('Summarize my nutrition')">Nutrition</button>
+        <button class="qbtn" onclick="qa('What patterns do you see in my history?')">Patterns</button>
+        <button class="qbtn" onclick="qa('What should I focus on tomorrow?')">Tomorrow tips</button>
+        <button class="qbtn" onclick="qa('Am I overtraining or undertraining?')">Training load</button>
+      </div>
+      <div class="chat-wrap" id="chatWrap">
+        <div class="cmsg"><div class="cav ai">VB</div><div class="cbubble">Hi! I'm your AI health coach. Upload screenshots and fill in your check-in, then ask me anything about your training, recovery, or patterns. I analyse your actual data to give you specific, useful answers.</div></div>
+      </div>
+      <div class="cinput-row">
+        <input id="chatIn" placeholder="Ask about your training, recovery, nutrition, trends…"/>
+        <button class="btn btn-green" id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRENDS -->
+  <div class="page" id="pg-trends">
+    <div class="g2">
+      <div class="panel"><div class="ph"><div><h3>Mood over time</h3></div></div><div id="moodChart"><div class="empty"><p>Save 2+ days to see trends</p></div></div></div>
+      <div class="panel"><div class="ph"><div><h3>Sleep over time</h3></div></div><div id="sleepChart"><div class="empty"><p>Save 2+ days to see trends</p></div></div></div>
+    </div>
+    <div class="panel"><div class="ph"><div><h3>Activity breakdown</h3><p>Screenshot types across all saved days</p></div></div><div id="actChart"><div class="empty"><p>Save days to see this</p></div></div></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="page" id="pg-history">
+    <div class="panel" style="background:var(--blue-bg);border-color:rgba(96,165,250,.3)">
+      <div class="ph" style="margin-bottom:8px"><div><h3 style="color:var(--blue)">☁️ Google Drive Setup</h3></div></div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px">To sync across devices, Google Drive needs a free <b style="color:var(--text)">OAuth Client ID</b>. Here's how to get one in ~3 minutes:</p>
+      <ol style="font-size:12px;color:var(--muted);line-height:2;padding-left:18px">
+        <li>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a></li>
+        <li>Create a new project (e.g. "VitaBrief")</li>
+        <li>APIs & Services → OAuth consent screen → External → fill App name → Save</li>
+        <li>APIs & Services → Credentials → Create Credentials → OAuth client ID</li>
+        <li>Application type: <b style="color:var(--text)">Web application</b></li>
+        <li>Authorised JavaScript origins: add <code style="background:var(--s3);padding:1px 5px;border-radius:4px">file://</code> and your file's path</li>
+        <li>Copy the <b style="color:var(--text)">Client ID</b> (ends in .apps.googleusercontent.com)</li>
+        <li>Open this HTML file in a text editor, find <code style="background:var(--s3);padding:1px 5px;border-radius:4px">CLIENT_ID:</code> near the bottom, paste your ID</li>
+      </ol>
+      <p style="font-size:11px;color:var(--faint);margin-top:10px">After that, Sign In with Google → your data saves to Drive automatically every time you save a day.</p>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><h3>Saved Days</h3><p id="histSub">Your archive</p></div><button class="btn btn-ghost btn-sm" id="clearHistBtn">🗑️ Clear all</button></div>
+      <div id="histList"><div class="empty"><div class="empty-ico">🗂️</div><h4>No saved days yet</h4><p>Save today to start your archive</p></div></div>
+    </div>
+  </div>
+
+</div><!-- end content -->
+</div><!-- end shell -->
+
+<!-- MOBILE NAV -->
+<nav class="mobnav">
+  <div class="mobitems">
+    <button class="mobitem on" data-pg="today"><span class="mico">📋</span>Brief</button>
+    <button class="mobitem" data-pg="upload"><span class="mico">📸</span>Upload</button>
+    <button class="mobitem" data-pg="checkin"><span class="mico">✏️</span>Check-in</button>
+    <button class="mobitem" data-pg="ai"><span class="mico">🤖</span>AI</button>
+    <button class="mobitem" data-pg="history"><span class="mico">🗂️</span>History</button>
+  </div>
+</nav>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+const STORE_KEY = 'vbpro_v3';
+let S = { uploads:[], history:[], aiCount:0, light:false };
+
+function save() {
+  try {
+    const ci = getCI();
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      history: S.history,
+      light: S.light,
+      today: todayISO(),
+      uploads: S.uploads,
+      ci
+    }));
+  } catch(e) {}
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    S.history = d.history || [];
+    S.light = d.light || false;
+    if (d.today === todayISO() && d.uploads) S.uploads = d.uploads;
+    if (d.today === todayISO() && d.ci) restoreCI(d.ci);
+    applyTheme();
+  } catch(e) {}
+}
+
+function restoreCI(ci) {
+  const set = (id, v) => { const el = g(id); if (el && v !== undefined && v !== null) el.value = v; };
+  set('fTitle', ci.title); set('fFocus', ci.focus); set('fSleep', ci.sleep);
+  set('fProtein', ci.protein); set('fCal', ci.cal); set('fSteps', ci.steps);
+  set('fJournal', ci.journal);
+  const sv = (id, vid, v) => { if (!v) return; const el = g(id); if (el) { el.value = v; g(vid).textContent = v; } };
+  sv('sMood','vMood',ci.mood); sv('sEnergy','vEnergy',ci.energy);
+  sv('sSleepQ','vSleepQ',ci.sleepQ); sv('sSore','vSore',ci.sore);
+  sv('sStress','vStress',ci.stress); sv('sDig','vDig',ci.dig);
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+const g = id => document.getElementById(id);
+const esc = s => (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const todayISO = () => new Date().toISOString().slice(0,10);
+const nowT = () => new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+const ficon = {run:'🏃',ride:'🚴',walk:'🚶',strength:'💪',food:'🍽️',recovery:'💤',activity:'⚡',summary:'📋'};
+const srcL = {strava:'Strava',samsung:'Samsung',lyfta:'Lyfta',mfp:'MFP',manual:'Manual'};
+
+function getCI() {
+  return {
+    title: g('fTitle').value, focus: g('fFocus').value,
+    sleep: parseFloat(g('fSleep').value)||0, protein: parseInt(g('fProtein').value)||0,
+    cal: parseInt(g('fCal').value)||0, steps: parseInt(g('fSteps').value)||0,
+    journal: g('fJournal').value,
+    mood: parseInt(g('sMood').value), energy: parseInt(g('sEnergy').value),
+    sleepQ: parseInt(g('sSleepQ').value), sore: parseInt(g('sSore').value),
+    stress: parseInt(g('sStress').value), dig: parseInt(g('sDig').value)
+  };
+}
+
+function currentDay() {
+  const ci = getCI();
+  return {
+    id: crypto.randomUUID(), date: todayISO(),
+    title: ci.title || ('Day · ' + new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'})),
+    focus: ci.focus, sleepHours: ci.sleep, protein: ci.protein, cal: ci.cal, steps: ci.steps,
+    journal: ci.journal, mood: ci.mood, energy: ci.energy, sleepQ: ci.sleepQ,
+    sore: ci.sore, stress: ci.stress, dig: ci.dig,
+    uploads: [...S.uploads], createdAt: new Date().toISOString()
+  };
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg, type='ok') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  g('tc').appendChild(el);
+  setTimeout(() => el.classList.add('show'), 10);
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+// ── THEME ──────────────────────────────────────────────────────────────────
+function applyTheme() {
+  document.body.toggleAttribute('data-light', S.light);
+  g('themeBtn').classList.toggle('on', S.light);
+}
+g('themeBtn').addEventListener('click', () => { S.light = !S.light; applyTheme(); save(); });
+
+// ── NAV ────────────────────────────────────────────────────────────────────
+const PAGE_INFO = {
+  today: ['Daily Brief','Today\'s health picture at a glance'],
+  upload: ['Upload Screenshots','Drop images from your health apps'],
+  checkin: ['Daily Check-In','How are you feeling today?'],
+  ai: ['AI Health Coach','Ask anything about your health data'],
+  trends: ['Trends','Patterns across your saved days'],
+  history: ['History','Your full daily archive']
+};
+
+function navigate(pg) {
+  document.querySelectorAll('[data-pg]').forEach(b => b.classList.toggle('on', b.dataset.pg === pg));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  g('pg-' + pg).classList.add('on');
+  const info = PAGE_INFO[pg] || [pg,''];
+  g('ptitle').textContent = info[0];
+  g('psub').textContent = info[1];
+  if (pg === 'trends') renderTrends();
+}
+document.querySelectorAll('[data-pg]').forEach(b => b.addEventListener('click', () => navigate(b.dataset.pg)));
+
+// ── OCR ────────────────────────────────────────────────────────────────────
+let ocrReady = false, ocrProm = null;
+async function loadOCR() {
+  if (ocrReady) return;
+  if (!ocrProm) ocrProm = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/tesseract.js@5/dist/tesseract.min.js';
+    s.onload = () => { ocrReady = true; res(); };
+    s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  return ocrProm;
+}
+async function runOCR(blob) {
+  try {
+    await loadOCR();
+    const w = await Tesseract.createWorker('eng');
+    const { data: { text } } = await w.recognize(blob);
+    await w.terminate();
+    return text || '';
+  } catch(e) { return ''; }
+}
+async function prepImg(file) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      const sc = img.width > 1800 ? 1800/img.width : 1;
+      c.width = Math.round(img.width*sc); c.height = Math.round(img.height*sc);
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,c.width,c.height);
+      ctx.drawImage(img,0,0,c.width,c.height);
+      c.toBlob(b => res(b||file), 'image/jpeg', .94);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ── CLASSIFY ───────────────────────────────────────────────────────────────
+function inferSrc(name='') {
+  const n = name.toLowerCase();
+  if (n.includes('strava')) return 'strava';
+  if (n.includes('samsung')||n.includes('shealth')||n.includes('health')) return 'samsung';
+  if (n.includes('lyfta')) return 'lyfta';
+  if (n.includes('mfp')||n.includes('myfitnesspal')||n.includes('food')||n.includes('macro')) return 'mfp';
+  return 'manual';
+}
+function detectFamily(text='', name='', src='manual') {
+  const t = (text+' '+name).toLowerCase();
+  const has = (...w) => w.some(x => t.includes(x));
+  if (has('protein','carbs','fat','calories','breakfast','lunch','dinner','snacks','macro','nutrition','diary','kcal')) return 'food';
+  if (has('sleep','hrv','resting hr','sleep score','recovery','readiness','deep sleep','rem sleep')) return 'recovery';
+  if (has('sets','reps','dumbbell','barbell','bench','squat','deadlift','curl','lat pulldown','gym','workout','weight training','resistance')) return 'strength';
+  if (has('cycling','bike','watts','power output')) return 'ride';
+  if (has('hiking','hike','trail','walk','walking','steps')) return 'walk';
+  if (has('pace','running','run','5k','10k','marathon','tempo','interval','km/','min/km','min/mi')) return 'run';
+  if (src === 'mfp') return 'food';
+  if (src === 'samsung') return 'activity';
+  return 'summary';
+}
+function detectMetrics(text='') {
+  const m = re => (text.match(re)||[])[1]||'';
+  return {
+    dist: m(/\b(\d{1,3}(?:\.\d+)?)\s*km\b/i) || m(/\b(\d{1,3}(?:\.\d+)?)\s*mi\b/i),
+    dur: m(/\b(\d{1,2}:\d{2}(?::\d{2})?)\b/),
+    pace: (text.match(/\b\d{1,2}:\d{2}\s*\/\s*(?:km|mi)\b/i)||[''])[0],
+    cal: m(/\b(\d{2,4})\s*kcal\b/i) || m(/calories[:\s]+(\d+)/i),
+    hr: m(/\b(\d{2,3})\s*bpm\b/i),
+    steps: m(/\b(\d{3,6}[,\d]*)\s*steps\b/i),
+    protein: m(/protein[:\s]+(\d+)\s*g/i),
+    hrv: m(/hrv[:\s]+(\d+)/i)
+  };
+}
+function makeDesc(fam, src, m) {
+  const s = srcL[src]||'App';
+  if (fam==='run') return `${s} run${m.dist?' · '+m.dist+' km':''}${m.dur?' · '+m.dur:''}${m.pace?' · '+m.pace:''}`;
+  if (fam==='ride') return `${s} ride${m.dist?' · '+m.dist+' km':''}${m.dur?' · '+m.dur:''}`;
+  if (fam==='walk') return `${s} walk${m.dist?' · '+m.dist+' km':''}${m.steps?' · '+m.steps+' steps':''}`;
+  if (fam==='strength') return `${s} strength${m.dur?' · '+m.dur:''}`;
+  if (fam==='food') return `${s} food log${m.cal?' · '+m.cal+' kcal':''}${m.protein?' · '+m.protein+'g protein':''}`;
+  if (fam==='recovery') return `${s} recovery${m.hrv?' · HRV '+m.hrv:''}${m.hr?' · '+m.hr+' bpm':''}`;
+  return `${s} screenshot`;
+}
+
+// ── FILE HANDLING ──────────────────────────────────────────────────────────
+async function parseImg(file) {
+  const src = inferSrc(file.name);
+  const prev = URL.createObjectURL(file);
+  const blob = await prepImg(file);
+  const txt = await runOCR(blob);
+  const fam = detectFamily(txt, file.name, src);
+  const m = detectMetrics(txt);
+  const desc = makeDesc(fam, src, m);
+
+  // Build summary and facts from OCR without API
+  const facts = [];
+  if (m.dist) facts.push('Distance: ' + m.dist + ' km');
+  if (m.dur) facts.push('Duration: ' + m.dur);
+  if (m.pace) facts.push('Pace: ' + m.pace);
+  if (m.cal) facts.push('Calories: ' + m.cal + ' kcal');
+  if (m.hr) facts.push('Heart rate: ' + m.hr + ' bpm');
+  if (m.steps) facts.push('Steps: ' + m.steps);
+  if (m.protein) facts.push('Protein: ' + m.protein + 'g');
+  if (m.hrv) facts.push('HRV: ' + m.hrv);
+
+  const summaries = {
+    run: `Run captured${m.dist?' — '+m.dist+' km':''} from ${srcL[src]||'app'}.`,
+    ride: `Cycling session captured${m.dist?' — '+m.dist+' km':''}`,
+    walk: `Walking activity${m.steps?' — '+m.steps+' steps':''}`,
+    strength: `Strength training session logged.`,
+    food: `Food diary captured${m.cal?' — '+m.cal+' kcal total':''}`,
+    recovery: `Recovery data captured${m.hrv?' — HRV '+m.hrv:''}`,
+    activity: `Activity data from ${srcL[src]||'app'} captured.`,
+    summary: `Screenshot logged from ${srcL[src]||'app'}.`
+  };
+
+  return {
+    id: crypto.randomUUID(), name: file.name, src, prev, fam,
+    time: nowT(), txt: txt.slice(0,500), desc, m, facts,
+    summary: summaries[fam] || desc,
+    conf: txt.length > 60 ? 0.88 : 0.5
+  };
+}
+
+async function parseTxt(file) {
+  const src = inferSrc(file.name);
+  const text = await file.text();
+  const fam = detectFamily(text, file.name, src);
+  const m = detectMetrics(text);
+  return {
+    id: crypto.randomUUID(), name: file.name, src, prev:'', fam,
+    time: nowT(), txt: text.slice(0,500), desc: makeDesc(fam, src, m),
+    m, facts:[], summary: fam + ' data imported from file.', conf: 0.92
+  };
+}
+
+async function handleFiles(files) {
+  if (!files.length) return;
+  g('ld').classList.add('on');
+  g('ldtxt').textContent = `Analyzing ${files.length} screenshot${files.length>1?'s':''} with OCR…`;
+  for (const f of files) {
+    try {
+      const entry = f.type.startsWith('image/') ? await parseImg(f) : await parseTxt(f);
+      S.uploads.unshift(entry);
+    } catch(e) { toast('Could not read: ' + f.name, 'err'); }
+  }
+  g('ld').classList.remove('on');
+  renderAll(); save();
+  toast(files.length + ' file' + (files.length>1?'s':'') + ' uploaded ✓');
+}
+
+// Drag & drop
+const dz = g('dz');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', async e => { e.preventDefault(); dz.classList.remove('drag'); await handleFiles([...e.dataTransfer.files]); });
+g('fi').addEventListener('change', async e => { await handleFiles([...e.target.files]); e.target.value=''; });
+
+// ── RENDER UPLOADS ─────────────────────────────────────────────────────────
+function renderUploads() {
+  const q = (g('searchQ').value||'').toLowerCase();
+  const items = S.uploads.filter(u => !q || `${u.name} ${u.desc} ${u.summary} ${u.fam}`.toLowerCase().includes(q));
+  const n = S.uploads.length;
+  g('uplSub').textContent = n + ' item' + (n!==1?'s':'');
+  g('nb1').textContent = n; g('tUpl').textContent = n;
+  if (!items.length) { g('uplList').innerHTML='<div class="empty"><div class="empty-ico">📸</div><h4>No uploads yet</h4><p>Upload screenshots to get started</p></div>'; return; }
+  g('uplList').innerHTML = items.map(u => `
+    <div class="ucard">
+      <div class="uthumb">${u.prev?`<img src="${esc(u.prev)}" alt="">`:`<span>${ficon[u.fam]||'📋'}</span>`}</div>
+      <div>
+        <div class="uname">${esc(u.name)}</div>
+        <div class="udesc">${esc(u.desc)} · ${u.time}</div>
+        ${u.summary?`<div class="uai">${esc(u.summary)}</div>`:''}
+        ${u.facts&&u.facts.length?`<div class="ufacts">${u.facts.map(f=>esc(f)).join(' · ')}</div>`:''}
+        <div class="ubadges">
+          <span class="badge b-${u.fam}">${ficon[u.fam]||'📋'} ${u.fam}</span>
+          <span class="badge b-src">${srcL[u.src]||'Manual'}</span>
+          <span class="badge b-src">${Math.round((u.conf||.5)*100)}%</span>
+        </div>
+      </div>
+      <button class="delbtn" onclick="delUpl('${u.id}')">✕</button>
+    </div>`).join('');
+}
+function delUpl(id) { S.uploads = S.uploads.filter(u=>u.id!==id); renderAll(); save(); }
+
+// ── RENDER BRIEF ───────────────────────────────────────────────────────────
+function renderBrief() {
+  const ci = getCI();
+  const fams = S.uploads.reduce((a,u)=>{ a[u.fam]=(a[u.fam]||0)+1; return a; },{});
+  const lines = [];
+  if (S.uploads.length) {
+    const parts = Object.entries(fams).map(([f,n])=>`${n} ${f}`).join(', ');
+    lines.push(`<b>${S.uploads.length} upload${S.uploads.length>1?'s':''}</b> today: ${parts}.`);
+  }
+  if (ci.mood) lines.push(`Mood <b>${ci.mood}/5</b> · Energy <b>${ci.energy}/5</b> · Sleep quality <b>${ci.sleepQ}/5</b>.`);
+  if (ci.sleep) lines.push(`Sleep: <b>${ci.sleep}h</b> · Soreness ${ci.sore}/5 · Stress ${ci.stress}/5.`);
+  if (ci.protein||ci.cal) lines.push(`Nutrition: <b>${ci.protein||0}g protein</b>${ci.cal?' · '+ci.cal+' kcal':''}${ci.steps?' · '+Number(ci.steps).toLocaleString()+' steps':''}.`);
+  ['run','strength','food','recovery'].forEach(fam => {
+    const u = S.uploads.find(x=>x.fam===fam);
+    if (u) lines.push(`${ficon[fam]} ${u.summary}`);
+  });
+  if (ci.journal) lines.push(`📝 <em>"${esc(ci.journal.slice(0,140))}${ci.journal.length>140?'…':''}"</em>`);
+  if (!lines.length) lines.push('Fill in your check-in and upload screenshots to generate your brief.');
+  g('bTitle').textContent = ci.title || "Today's Brief";
+  g('bDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  g('bLines').innerHTML = lines.map(l=>`<div class="bline">${l}</div>`).join('');
+  g('tMood').textContent = ci.mood ? ci.mood+'/5' : '—';
+  g('tSleep').textContent = ci.sleep ? ci.sleep+'h' : '—';
+  g('tEnergy').textContent = ci.energy ? ci.energy+'/5' : '—';
+}
+
+// ── RENDER TIMELINE ────────────────────────────────────────────────────────
+function renderTimeline() {
+  if (!S.uploads.length) { g('timeline').innerHTML='<div class="empty"><div class="empty-ico">🕐</div><p>Upload screenshots to build your timeline</p></div>'; return; }
+  g('timeline').innerHTML = S.uploads.map(u=>`
+    <div class="tlitem">
+      <div class="tldot">${ficon[u.fam]||'📋'}</div>
+      <div><div class="tltitle">${esc(u.time)} · ${srcL[u.src]||'Manual'}</div><div class="tlsub">${esc(u.summary||u.desc)}</div></div>
+    </div>`).join('');
+}
+
+// ── RENDER PATTERNS ────────────────────────────────────────────────────────
+function renderPatterns() {
+  const h = S.history;
+  if (h.length < 2) { g('patterns').innerHTML='<div class="bline">Save a few days to see patterns here.</div>'; return; }
+  const avgMood = (h.reduce((a,d)=>a+d.mood,0)/h.length).toFixed(1);
+  const avgSleep = (h.reduce((a,d)=>a+d.sleepHours,0)/h.length).toFixed(1);
+  const goodSleep = h.filter(d=>d.sleepHours>=7).length;
+  const lines = [
+    `Average mood across ${h.length} days: <b>${avgMood}/5</b>. ${parseFloat(avgMood)>=3.5?'Trending positive!':'Look at what drives your best days.'}`,
+    `Average sleep: <b>${avgSleep}h</b>. ${goodSleep} of ${h.length} days had 7+ hours.`,
+    h.length>=3?`Last 3 days energy avg: <b>${((h.slice(0,3).reduce((a,d)=>a+d.energy,0))/3).toFixed(1)}/5</b>.`:'Keep saving days for energy trends.'
+  ];
+  g('patterns').innerHTML = lines.map(l=>`<div class="bline">${l}</div>`).join('');
+}
+
+// ── RENDER HISTORY ─────────────────────────────────────────────────────────
+function renderHistory() {
+  const h = S.history;
+  g('nb2').textContent = h.length;
+  g('histSub').textContent = h.length + ' saved day' + (h.length!==1?'s':'');
+  if (!h.length) { g('histList').innerHTML='<div class="empty"><div class="empty-ico">🗂️</div><h4>No saved days yet</h4><p>Save today to start your archive</p></div>'; return; }
+  g('histList').innerHTML = h.map((d,i)=>`
+    <div class="hcard">
+      <div class="hinfo">
+        <h4>${esc(d.title)}</h4>
+        <p>${new Date(d.createdAt).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · ${d.uploads.length} uploads · ${esc(d.focus)}</p>
+        <div class="hbadges">
+          ${d.mood?`<span class="badge b-run" style="font-size:10px">Mood ${d.mood}/5</span>`:''}
+          ${d.sleepHours?`<span class="badge b-recovery" style="font-size:10px">Sleep ${d.sleepHours}h</span>`:''}
+          ${[...new Set(d.uploads.map(u=>u.fam))].map(f=>`<span class="badge b-${f}">${ficon[f]||''} ${f}</span>`).join('')}
+        </div>
+      </div>
+      <div class="hactions">
+        <button class="btn btn-ghost btn-sm" onclick="loadDay(${i})">Load</button>
+        <button class="btn btn-ghost btn-sm" onclick="delDay(${i})" style="color:var(--red)">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function loadDay(i) {
+  const d = S.history[i]; if (!d) return;
+  g('fTitle').value=d.title; g('fFocus').value=d.focus;
+  g('fSleep').value=d.sleepHours||''; g('fProtein').value=d.protein||'';
+  g('fCal').value=d.cal||''; g('fSteps').value=d.steps||'';
+  g('fJournal').value=d.journal||'';
+  const sv=(id,vid,v)=>{ g(id).value=v||3; g(vid).textContent=v||3; };
+  sv('sMood','vMood',d.mood); sv('sEnergy','vEnergy',d.energy);
+  sv('sSleepQ','vSleepQ',d.sleepQ); sv('sSore','vSore',d.sore);
+  sv('sStress','vStress',d.stress); sv('sDig','vDig',d.dig);
+  S.uploads = d.uploads;
+  renderAll(); navigate('today'); toast('Loaded: ' + d.title);
+}
+function delDay(i) {
+  if (!confirm('Delete "' + S.history[i]?.title + '"?')) return;
+  S.history.splice(i,1); renderHistory(); save(); toast('Day removed');
+}
+
+// ── RENDER TRENDS ──────────────────────────────────────────────────────────
+function renderTrends() {
+  const h = [...S.history].reverse().slice(-14);
+  if (h.length < 2) {
+    ['moodChart','sleepChart','actChart'].forEach(id => g(id).innerHTML='<div class="empty"><p>Save 2+ days to see this</p></div>');
+    return;
+  }
+  g('moodChart').innerHTML = h.map(d=>{
+    const pct = Math.round((d.mood/5)*100);
+    const lbl = new Date(d.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    return `<div class="brow"><div class="blabel">${lbl}</div><div class="btrack"><div class="bfill" style="width:${pct}%;background:var(--green)"></div></div><div class="bval">${d.mood}/5</div></div>`;
+  }).join('');
+  g('sleepChart').innerHTML = h.map(d=>{
+    const pct = Math.min(Math.round((d.sleepHours/10)*100),100);
+    const col = d.sleepHours>=7?'var(--green)':d.sleepHours>=5?'var(--yellow)':'var(--red)';
+    const lbl = new Date(d.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    return `<div class="brow"><div class="blabel">${lbl}</div><div class="btrack"><div class="bfill" style="width:${pct}%;background:${col}"></div></div><div class="bval">${d.sleepHours}h</div></div>`;
+  }).join('');
+  const all = S.history.flatMap(d=>d.uploads);
+  const bd = all.reduce((a,u)=>{ a[u.fam]=(a[u.fam]||0)+1; return a; },{});
+  const tot = all.length||1;
+  g('actChart').innerHTML = Object.entries(bd).sort((a,b)=>b[1]-a[1]).map(([f,n])=>`
+    <div class="brow">
+      <div class="blabel">${ficon[f]||''} ${f}</div>
+      <div class="btrack"><div class="bfill" style="width:${Math.round((n/tot)*100)}%;background:var(--green)"></div></div>
+      <div class="bval">${n}</div>
+    </div>`).join('');
+}
+
+function renderAll() { renderUploads(); renderBrief(); renderTimeline(); renderPatterns(); renderHistory(); }
+
+// ── SLIDERS ────────────────────────────────────────────────────────────────
+[['sMood','vMood'],['sEnergy','vEnergy'],['sSleepQ','vSleepQ'],['sSore','vSore'],['sStress','vStress'],['sDig','vDig']].forEach(([sid,vid]) => {
+  g(sid).addEventListener('input', () => { g(vid).textContent = g(sid).value; renderBrief(); save(); });
+});
+['fTitle','fFocus','fSleep','fProtein','fCal','fSteps','fJournal'].forEach(id => {
+  g(id).addEventListener('input', () => { renderBrief(); save(); });
+});
+g('searchQ').addEventListener('input', renderUploads);
+
+// ── SAVE / EXPORT ──────────────────────────────────────────────────────────
+g('saveBtn').addEventListener('click', () => {
+  const day = currentDay();
+  if (!day.uploads.length && !day.journal && !day.sleepHours && !day.mood) { toast('Add some data before saving!','err'); return; }
+  const idx = S.history.findIndex(d=>d.date===day.date);
+  if (idx>=0) S.history[idx]=day; else S.history.unshift(day);
+  renderAll(); save(); toast('Day saved! ✅');
+});
+g('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({app:'VitaBrief Pro',exportedAt:new Date().toISOString(),today:currentDay(),history:S.history},null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`vitabrief-${todayISO()}.json`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000); toast('Exported ✓');
+});
+g('clearUplBtn').addEventListener('click', () => { if(!S.uploads.length)return; if(!confirm('Clear all uploads?'))return; S.uploads=[]; renderAll(); save(); toast('Uploads cleared'); });
+g('clearHistBtn').addEventListener('click', () => { if(!S.history.length)return; if(!confirm('Delete all saved days?'))return; S.history=[]; renderHistory(); save(); toast('History cleared'); });
+g('genBtn').addEventListener('click', () => { renderBrief(); toast('Brief updated ✓'); });
+g('noteBtn').addEventListener('click', () => {
+  const note = g('fJournal').value.trim();
+  if (!note) { toast('Write a note first','err'); return; }
+  S.uploads.unshift({id:crypto.randomUUID(),name:`note-${Date.now()}.txt`,src:'manual',prev:'',fam:'summary',time:nowT(),txt:note,desc:'Manual note',m:{},facts:[],summary:note.slice(0,100),conf:1});
+  renderAll(); save(); toast('Note added ✓');
+});
+
+// ── AI CHAT (Claude API — works when running inside Claude.ai) ──────────────
+function buildCtx() {
+  const ci = getCI();
+  const ups = S.uploads.map(u=>({type:u.fam,src:u.src,summary:u.summary,facts:u.facts,metrics:u.m}));
+  const hist = S.history.slice(0,7).map(d=>({date:d.date,mood:d.mood,energy:d.energy,sleep:d.sleepHours,stress:d.stress,focus:d.focus,uploads:d.uploads.length}));
+  return `TODAY ${todayISO()}: "${ci.title||'untitled'}", focus=${ci.focus}, sleep=${ci.sleep}h (Q:${ci.sleepQ}/5), mood=${ci.mood}/5, energy=${ci.energy}/5, stress=${ci.stress}/5, soreness=${ci.sore}/5, protein=${ci.protein}g, calories=${ci.cal}kcal, steps=${ci.steps}, journal="${ci.journal||'none'}"
+Uploads: ${JSON.stringify(ups)}
+History (${hist.length} days): ${JSON.stringify(hist)}`;
+}
+
+function addMsg(role, text) {
+  const div = document.createElement('div');
+  div.className = 'cmsg' + (role==='user'?' me':'');
+  div.innerHTML = `<div class="cav ${role==='user'?'me':'ai'}">${role==='user'?'You':'VB'}</div><div class="cbubble">${esc(text).replace(/\n/g,'<br>')}</div>`;
+  g('chatWrap').appendChild(div);
+  g('chatWrap').scrollTop = 99999;
+  return div;
+}
+function addTyping() {
+  const div = document.createElement('div');
+  div.className = 'cmsg';
+  div.innerHTML = `<div class="cav ai">VB</div><div class="cbubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  g('chatWrap').appendChild(div); g('chatWrap').scrollTop=99999;
+  return div;
+}
+
+async function sendChat(msg) {
+  if (!msg.trim()) return;
+  addMsg('user', msg);
+  const typing = addTyping();
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:600,
+        system:`You are VitaBrief AI, a warm, concise personal health coach. You have the user's full health data. Reference their actual numbers. 2-4 sentences unless they ask for more. Be specific and encouraging.`,
+        messages:[{role:'user',content:`My health data:\n${buildCtx()}\n\nQuestion: ${msg}`}]
+      })
+    });
+    const d = await resp.json();
+    const text = (d.content||[]).map(c=>c.text||'').join('') || "I couldn't get a response right now — try again.";
+    typing.remove(); addMsg('ai', text);
+  } catch(e) {
+    typing.remove();
+    addMsg('ai', "The AI chat works when this file is open inside Claude.ai. All other features — uploads, OCR, check-in, history — work fully offline in your browser.");
+  }
+}
+
+function qa(q) { navigate('ai'); sendChat(q); }
+g('sendBtn').addEventListener('click', () => { const v=g('chatIn').value.trim(); if(!v)return; g('chatIn').value=''; sendChat(v); });
+g('chatIn').addEventListener('keydown', e => { if(e.key==='Enter'){e.preventDefault();g('sendBtn').click();} });
+
+// ── GOOGLE DRIVE SYNC ─────────────────────────────────────────────────────
+// Uses Google Identity Services + Drive REST API
+// Saves one file: vitabrief-data.json in the user's Drive root
+// Works across any device where the user signs in with the same Google account
+
+const GD = {
+  // Public OAuth client — read/write scope for appDataFolder + drive.file
+  // Replace CLIENT_ID with your own from console.cloud.google.com if you want
+  CLIENT_ID: '394268400154-lqq6g6qgm792r127hvt9llgpnr1574gf.apps.googleusercontent.com',
+  SCOPES: 'https://www.googleapis.com/auth/drive.file',
+  FILENAME: 'vitabrief-data.json',
+  token: null,
+  fileId: null,
+  user: null,
+  ready: false
+};
+
+// Load Google Identity Services script
+function loadGIS() {
+  return new Promise((res, rej) => {
+    if (window.google?.accounts) { res(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+// Load GAPI (Drive REST)
+function loadGAPI() {
+  return new Promise((res, rej) => {
+    if (window.gapi?.client) { res(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://apis.google.com/js/api.js';
+    s.onload = () => {
+      gapi.load('client', async () => {
+        await gapi.client.init({});
+        res();
+      });
+    };
+    s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+function setDriveUI(state) {
+  // state: 'off' | 'connected' | 'syncing' | 'error'
+  const dot = g('driveDot'), name = g('driveName'), status = g('driveStatus');
+  const signBtn = g('driveSignBtn'), syncBtn = g('driveSyncBtn');
+  dot.className = 'drive-dot' + (state==='off'?' off':state==='syncing'?' sync':'');
+  if (state === 'off') {
+    name.textContent = 'Not connected'; status.textContent = 'Tap Sign In';
+    signBtn.textContent = '🔐 Sign In'; signBtn.disabled = false; syncBtn.disabled = true;
+  } else if (state === 'connected') {
+    name.textContent = GD.user || 'Google account';
+    status.textContent = 'Connected · ' + GD.FILENAME;
+    signBtn.textContent = '🚪 Sign Out'; signBtn.disabled = false; syncBtn.disabled = false;
+  } else if (state === 'syncing') {
+    status.textContent = 'Syncing…'; syncBtn.disabled = true;
+  } else if (state === 'error') {
+    status.textContent = 'Error — try again'; syncBtn.disabled = false;
+  }
+}
+
+async function driveSignIn() {
+  // If already connected, sign out
+  if (GD.token) {
+    google.accounts.oauth2.revoke(GD.token, () => {});
+    GD.token = null; GD.fileId = null; GD.user = null; GD.ready = false;
+    setDriveUI('off'); toast('Signed out of Google Drive');
+    return;
+  }
+
+  toast('Opening Google sign-in…');
+  try {
+    await loadGIS();
+    await loadGAPI();
+  } catch(e) {
+    toast('Could not load Google APIs. Check your internet connection.','err');
+    return;
+  }
+
+  // Use token client for OAuth2
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GD.CLIENT_ID,
+    scope: GD.SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { toast('Google sign-in failed: ' + resp.error, 'err'); setDriveUI('error'); return; }
+      GD.token = resp.access_token;
+      // Get user info
+      try {
+        const uResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: 'Bearer ' + GD.token }
+        });
+        const u = await uResp.json();
+        GD.user = u.name || u.email || 'Google account';
+      } catch(e) { GD.user = 'Google account'; }
+      GD.ready = true;
+      setDriveUI('connected');
+      toast('Connected to Google Drive ✓');
+      // Auto-load existing data from Drive
+      await driveLoad();
+    }
+  });
+  client.requestAccessToken({ prompt: 'consent' });
+}
+
+// Find the vitabrief-data.json file in Drive
+async function findDriveFile() {
+  const resp = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='${GD.FILENAME}'+and+trashed=false&fields=files(id,name,modifiedTime)&spaces=drive`,
+    { headers: { Authorization: 'Bearer ' + GD.token } }
+  );
+  const data = await resp.json();
+  return data.files?.[0]?.id || null;
+}
+
+// Save all data to Drive
+async function driveSave() {
+  if (!GD.ready || !GD.token) return;
+  setDriveUI('syncing');
+  try {
+    const payload = JSON.stringify({
+      app: 'VitaBrief Pro', savedAt: new Date().toISOString(),
+      history: S.history,
+      light: S.light
+    });
+    const blob = new Blob([payload], { type: 'application/json' });
+
+    if (!GD.fileId) GD.fileId = await findDriveFile();
+
+    if (GD.fileId) {
+      // Update existing file
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${GD.fileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + GD.token, 'Content-Type': 'application/json' },
+        body: blob
+      });
+    } else {
+      // Create new file
+      const meta = new Blob([JSON.stringify({ name: GD.FILENAME, mimeType: 'application/json' })], { type: 'application/json' });
+      const form = new FormData();
+      form.append('metadata', meta);
+      form.append('file', blob);
+      const resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + GD.token },
+        body: form
+      });
+      const created = await resp.json();
+      GD.fileId = created.id;
+    }
+    setDriveUI('connected');
+    toast('☁️ Saved to Google Drive ✓');
+  } catch(e) {
+    setDriveUI('error');
+    toast('Drive save failed — try again','err');
+  }
+}
+
+// Load data from Drive
+async function driveLoad() {
+  if (!GD.ready || !GD.token) return;
+  setDriveUI('syncing');
+  try {
+    if (!GD.fileId) GD.fileId = await findDriveFile();
+    if (!GD.fileId) {
+      setDriveUI('connected');
+      toast('No existing data in Drive — will create on first save');
+      return;
+    }
+    const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${GD.fileId}?alt=media`, {
+      headers: { Authorization: 'Bearer ' + GD.token }
+    });
+    const data = await resp.json();
+    if (data.history) {
+      // Merge: keep local entries not in Drive, prefer Drive for same dates
+      const driveByDate = Object.fromEntries((data.history||[]).map(d=>[d.date,d]));
+      const localByDate = Object.fromEntries(S.history.map(d=>[d.date,d]));
+      const merged = { ...localByDate, ...driveByDate };
+      S.history = Object.values(merged).sort((a,b)=>b.createdAt?.localeCompare(a.createdAt||'')||0);
+    }
+    if (data.light !== undefined) { S.light = data.light; applyTheme(); }
+    setDriveUI('connected');
+    renderAll();
+    toast('☁️ Loaded from Google Drive ✓');
+  } catch(e) {
+    setDriveUI('error');
+    toast('Drive load failed','err');
+  }
+}
+
+g('driveSignBtn').addEventListener('click', driveSignIn);
+g('driveSyncBtn').addEventListener('click', async () => {
+  if (!GD.ready) { toast('Sign in to Google Drive first','err'); return; }
+  await driveLoad();
+  await driveSave();
+});
+
+// Auto-save to Drive whenever we save a day
+const _origSave = save;
+// Patch saveBtn to also push to Drive
+g('saveBtn').addEventListener('click', async () => {
+  // After local save, also push to Drive if connected
+  if (GD.ready) await driveSave();
+}, true); // capture phase so it fires after the main saveBtn handler
+
+setDriveUI('off');
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+load();
+renderAll();
+g('bDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+</script>
+</body>
+</html>
