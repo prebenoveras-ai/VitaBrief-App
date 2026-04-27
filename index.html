@@ -449,7 +449,10 @@ a{color:var(--green);text-decoration:none}
       <div style="font-size:12px;color:var(--muted);line-height:1.7;background:var(--s2);padding:12px;border-radius:var(--r);border:1px solid var(--border)">
         <b style="color:var(--text)">How it works:</b><br>
         Your data saves to a file called <code style="background:var(--s3);padding:1px 5px;border-radius:4px;font-size:11px">vitabrief-data.json</code> in your Google Drive.<br><br>
-        Sign in on your phone <em>and</em> your PC with the same Google account — both stay in sync automatically every time you save a day.
+        Sign in on your phone <em>and</em> your PC with the same Google account — both stay in sync automatically every time you save a day.<br><br>
+        <b style="color:var(--text)">Your redirect URI:</b><br>
+        <code id="debugRedirect" style="background:var(--s3);padding:2px 6px;border-radius:4px;font-size:10px;word-break:break-all;display:block;margin-top:4px"></code>
+        <span style="font-size:10px;color:var(--faint)">This must be in Google Cloud Console → Authorised redirect URIs</span>
       </div>
     </div>
 
@@ -1026,64 +1029,49 @@ const GD = {
 // Google Drive uses redirect OAuth — no extra scripts needed
 
 function setDriveUI(state) {
-  // state: 'off' | 'connected' | 'syncing' | 'error'
   const dot = g('driveDot'), name = g('driveName'), status = g('driveStatus');
   const signBtn = g('driveSignBtn'), syncBtn = g('driveSyncBtn');
-  dot.className = 'drive-dot' + (state==='off'?' off':state==='syncing'?' sync':'');
+  if (dot) dot.className = 'drive-dot' + (state==='off'?' off':state==='syncing'?' sync':'');
   if (state === 'off') {
-    name.textContent = 'Not connected'; status.textContent = 'Tap Sign In';
-    signBtn.textContent = '🔐 Sign In'; signBtn.disabled = false; syncBtn.disabled = true;
+    if (name) name.textContent = 'Not connected';
+    if (status) status.textContent = 'Tap Sign In';
+    if (signBtn) { signBtn.textContent = '🔐 Sign In'; signBtn.disabled = false; }
+    if (syncBtn) syncBtn.disabled = true;
   } else if (state === 'connected') {
-    name.textContent = GD.user || 'Google account';
-    status.textContent = 'Connected · ' + GD.FILENAME;
-    signBtn.textContent = '🚪 Sign Out'; signBtn.disabled = false; syncBtn.disabled = false;
+    if (name) name.textContent = GD.user || 'Google account';
+    if (status) status.textContent = 'Connected · ' + GD.FILENAME;
+    if (signBtn) { signBtn.textContent = '🚪 Sign Out'; signBtn.disabled = false; }
+    if (syncBtn) syncBtn.disabled = false;
   } else if (state === 'syncing') {
-    status.textContent = 'Syncing…'; syncBtn.disabled = true;
+    if (status) status.textContent = 'Syncing…';
+    if (syncBtn) syncBtn.disabled = true;
   } else if (state === 'error') {
-    status.textContent = 'Error — try again'; syncBtn.disabled = false;
+    if (status) status.textContent = 'Error — try again';
+    if (syncBtn) syncBtn.disabled = false;
   }
+  updateDrivePage(state);
 }
 
 async function driveSignIn() {
   if (GD.token) {
     GD.token = null; GD.fileId = null; GD.user = null; GD.ready = false;
     localStorage.removeItem('vb_gd_token');
+    localStorage.removeItem('vb_gd_user');
     setDriveUI('off'); toast('Signed out of Google Drive');
     return;
   }
-  toast('Opening Google sign-in…');
-  await new Promise((res, rej) => {
-    if (window.google?.accounts) { res(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.onload = res; s.onerror = rej;
-    document.head.appendChild(s);
-  });
-  try {
-    const client = google.accounts.oauth2.initTokenClient({
-      client_id: GD.CLIENT_ID,
-      scope: GD.SCOPES,
-      callback: async (resp) => {
-        if (resp.error) { toast('Sign-in failed: ' + resp.error, 'err'); setDriveUI('error'); return; }
-        await handleToken(resp.access_token);
-      },
-      error_callback: (err) => {
-        if (err.type === 'popup_failed_to_open' || err.type === 'popup_closed') {
-          doRedirectAuth();
-        } else { toast('Sign-in error', 'err'); setDriveUI('error'); }
-      }
-    });
-    client.requestAccessToken({ prompt: '' });
-  } catch(e) { doRedirectAuth(); }
-}
-
-function doRedirectAuth() {
+  // Pure redirect flow - most reliable across all browsers and devices
+  // Save app state first so we don't lose data during redirect
   save();
+  // Build exact redirect URI from current browser location
   const REDIRECT = window.location.origin + window.location.pathname;
+  localStorage.setItem('vb_oauth_redirect', REDIRECT);
   const params = new URLSearchParams({
-    client_id: GD.CLIENT_ID, redirect_uri: REDIRECT,
-    response_type: 'token', scope: GD.SCOPES,
-    include_granted_scopes: 'true', state: 'drive_auth'
+    client_id: GD.CLIENT_ID,
+    redirect_uri: REDIRECT,
+    response_type: 'token',
+    scope: GD.SCOPES,
+    prompt: 'select_account'
   });
   window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
 }
@@ -1096,36 +1084,48 @@ async function handleToken(token) {
       headers: { Authorization: 'Bearer ' + token }
     })).json();
     GD.user = u.name || u.email || 'Google account';
-  } catch(e) { GD.user = 'Google account'; }
+    localStorage.setItem('vb_gd_user', GD.user);
+  } catch(e) { GD.user = localStorage.getItem('vb_gd_user') || 'Google account'; }
   GD.ready = true;
   setDriveUI('connected');
-  toast('Connected to Google Drive ✓');
+  toast('Connected as ' + GD.user + ' ✓');
   await driveLoad();
 }
 
 async function checkOAuthRedirect() {
+  // Check for token in URL hash (returning from Google redirect)
   const hash = window.location.hash;
   if (hash.includes('access_token')) {
     const params = new URLSearchParams(hash.slice(1));
     const token = params.get('access_token');
     if (token) {
-      history.replaceState(null, '', window.location.pathname + window.location.search);
+      // Clean URL immediately
+      history.replaceState(null, '', window.location.pathname);
       await handleToken(token);
       navigate('drive');
       return;
     }
   }
-  // Try restoring saved token
+  // Check for saved token in localStorage (returning user)
   const saved = localStorage.getItem('vb_gd_token');
   if (saved) {
     try {
-      const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + saved }});
+      const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + saved }
+      });
       if (r.ok) {
         const u = await r.json();
-        GD.token = saved; GD.user = u.name || u.email || 'Google account'; GD.ready = true;
+        GD.token = saved;
+        GD.user = u.name || u.email || localStorage.getItem('vb_gd_user') || 'Google account';
+        GD.ready = true;
         setDriveUI('connected');
-      } else { localStorage.removeItem('vb_gd_token'); }
-    } catch(e) { localStorage.removeItem('vb_gd_token'); }
+        toast('Welcome back, ' + GD.user + '!');
+        return;
+      }
+    } catch(e) {}
+    // Token expired or invalid - clear it
+    localStorage.removeItem('vb_gd_token');
+    localStorage.removeItem('vb_gd_user');
   }
 }
 
@@ -1238,13 +1238,12 @@ g('driveLoadBtn').addEventListener('click', async () => { if (GD.ready) await dr
 g('drivePushBtn').addEventListener('click', async () => { if (GD.ready) await driveSave(); });
 g('exportBtn2').addEventListener('click', () => g('exportBtn').click());
 
-// Keep both Drive UIs in sync
-const _origSetDriveUI = setDriveUI;
-function setDriveUI(state) {
-  _origSetDriveUI(state);
+// Keep both Drive UIs in sync — update the mobile Drive page UI
+function updateDrivePage(state) {
   const dot2 = g('driveDot2'), name2 = g('driveName2'), status2 = g('driveStatus2');
   const signBtn2 = g('driveSignBtn2'), syncBtn2 = g('driveSyncBtn2');
   const loadBtn = g('driveLoadBtn'), pushBtn = g('drivePushBtn');
+  if (!dot2) return;
   dot2.className = 'drive-dot' + (state==='off'?' off':state==='syncing'?' sync':'');
   if (state === 'off') {
     name2.textContent = 'Not connected'; status2.textContent = 'Sign in to enable sync';
@@ -1258,7 +1257,7 @@ function setDriveUI(state) {
   } else if (state === 'syncing') {
     status2.textContent = 'Syncing…'; syncBtn2.disabled = true;
   } else if (state === 'error') {
-    status2.textContent = 'Error — try again';
+    status2.textContent = 'Error — try again'; syncBtn2.disabled = false;
   }
 }
 setDriveUI('off');
@@ -1269,6 +1268,9 @@ renderAll();
 g('bDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 // Check if returning from Google OAuth redirect (mobile flow)
 checkOAuthRedirect();
+// Show debug redirect URI
+const dbgEl = document.getElementById('debugRedirect');
+if (dbgEl) dbgEl.textContent = window.location.origin + window.location.pathname;
 </script>
 </body>
 </html>
