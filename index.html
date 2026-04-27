@@ -765,6 +765,7 @@ async function handleFiles(files) {
   g('ld').classList.remove('on');
   renderAll(); save();
   toast(files.length + ' file' + (files.length>1?'s':'') + ' uploaded ✓');
+  if (GD.ready) driveSave();
 }
 
 // Drag & drop
@@ -929,8 +930,13 @@ function renderAll() { renderUploads(); renderBrief(); renderTimeline(); renderP
 [['sMood','vMood'],['sEnergy','vEnergy'],['sSleepQ','vSleepQ'],['sSore','vSore'],['sStress','vStress'],['sDig','vDig']].forEach(([sid,vid]) => {
   g(sid).addEventListener('input', () => { g(vid).textContent = g(sid).value; renderBrief(); save(); });
 });
+let driveDebounce = null;
+function debouncedDriveSync() {
+  clearTimeout(driveDebounce);
+  driveDebounce = setTimeout(() => { if (GD.ready) driveSave(); }, 4000);
+}
 ['fTitle','fFocus','fSleep','fProtein','fCal','fSteps','fJournal'].forEach(id => {
-  g(id).addEventListener('input', () => { renderBrief(); save(); });
+  g(id).addEventListener('input', () => { renderBrief(); save(); debouncedDriveSync(); });
 });
 g('searchQ').addEventListener('input', renderUploads);
 
@@ -940,7 +946,9 @@ g('saveBtn').addEventListener('click', () => {
   if (!day.uploads.length && !day.journal && !day.sleepHours && !day.mood) { toast('Add some data before saving!','err'); return; }
   const idx = S.history.findIndex(d=>d.date===day.date);
   if (idx>=0) S.history[idx]=day; else S.history.unshift(day);
-  renderAll(); save(); toast('Day saved! ✅');
+  renderAll(); save();
+  toast('Day saved! ✅');
+  if (GD.ready) driveSave();
 });
 g('exportBtn').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify({app:'VitaBrief Pro',exportedAt:new Date().toISOString(),today:currentDay(),history:S.history},null,2)],{type:'application/json'});
@@ -1143,10 +1151,15 @@ async function driveSave() {
   if (!GD.ready || !GD.token) return;
   setDriveUI('syncing');
   try {
+    // Strip preview URLs (blob:// URLs don't survive across devices)
+    const uploadsClean = S.uploads.map(u => ({...u, prev: ''}));
     const payload = JSON.stringify({
       app: 'VitaBrief Pro', savedAt: new Date().toISOString(),
       history: S.history,
-      light: S.light
+      light: S.light,
+      todayDate: todayISO(),
+      todayUploads: uploadsClean,
+      todayCI: getCI()
     });
     const blob = new Blob([payload], { type: 'application/json' });
 
@@ -1197,16 +1210,29 @@ async function driveLoad() {
     });
     const data = await resp.json();
     if (data.history) {
-      // Merge: keep local entries not in Drive, prefer Drive for same dates
+      // Merge history: prefer Drive entries for same dates
       const driveByDate = Object.fromEntries((data.history||[]).map(d=>[d.date,d]));
       const localByDate = Object.fromEntries(S.history.map(d=>[d.date,d]));
       const merged = { ...localByDate, ...driveByDate };
-      S.history = Object.values(merged).sort((a,b)=>b.createdAt?.localeCompare(a.createdAt||'')||0);
+      S.history = Object.values(merged).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    }
+    // Restore today's uploads if Drive has newer data
+    if (data.todayDate === todayISO() && data.todayUploads && data.todayUploads.length >= S.uploads.length) {
+      S.uploads = data.todayUploads;
+    }
+    // Restore today's check-in from Drive if fields are empty locally
+    if (data.todayCI && data.todayDate === todayISO()) {
+      const ci = data.todayCI;
+      const localCI = getCI();
+      // Only restore if local is mostly empty
+      if (!localCI.mood && !localCI.sleep && !localCI.journal) {
+        restoreCI(ci);
+      }
     }
     if (data.light !== undefined) { S.light = data.light; applyTheme(); }
     setDriveUI('connected');
     renderAll();
-    toast('☁️ Loaded from Google Drive ✓');
+    toast('☁️ Synced from Google Drive ✓');
   } catch(e) {
     setDriveUI('error');
     toast('Drive load failed','err');
