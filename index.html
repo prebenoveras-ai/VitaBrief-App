@@ -1045,53 +1045,91 @@ function setDriveUI(state) {
 }
 
 async function driveSignIn() {
-  // Sign out if already connected
   if (GD.token) {
     GD.token = null; GD.fileId = null; GD.user = null; GD.ready = false;
     localStorage.removeItem('vb_gd_token');
     setDriveUI('off'); toast('Signed out of Google Drive');
     return;
   }
-  // Redirect-based OAuth — works on all mobile browsers, no popup needed
-  // Use exact current URL as redirect (strips hash, keeps path as-is)
+  toast('Opening Google sign-in…');
+  await new Promise((res, rej) => {
+    if (window.google?.accounts) { res(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  try {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: GD.CLIENT_ID,
+      scope: GD.SCOPES,
+      callback: async (resp) => {
+        if (resp.error) { toast('Sign-in failed: ' + resp.error, 'err'); setDriveUI('error'); return; }
+        await handleToken(resp.access_token);
+      },
+      error_callback: (err) => {
+        if (err.type === 'popup_failed_to_open' || err.type === 'popup_closed') {
+          doRedirectAuth();
+        } else { toast('Sign-in error', 'err'); setDriveUI('error'); }
+      }
+    });
+    client.requestAccessToken({ prompt: '' });
+  } catch(e) { doRedirectAuth(); }
+}
+
+function doRedirectAuth() {
+  save();
   const REDIRECT = window.location.origin + window.location.pathname;
   const params = new URLSearchParams({
-    client_id: GD.CLIENT_ID,
-    redirect_uri: REDIRECT,
-    response_type: 'token',
-    scope: GD.SCOPES,
-    include_granted_scopes: 'true',
-    state: 'drive_auth'
+    client_id: GD.CLIENT_ID, redirect_uri: REDIRECT,
+    response_type: 'token', scope: GD.SCOPES,
+    include_granted_scopes: 'true', state: 'drive_auth'
   });
   window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
 }
 
-// Called on page load — checks if returning from Google OAuth redirect
-async function checkOAuthRedirect() {
-  const hash = window.location.hash;
-  if (!hash.includes('access_token')) return;
-  const params = new URLSearchParams(hash.slice(1));
-  const token = params.get('access_token');
-  if (!token) return;
-  // Clean token from address bar
-  history.replaceState(null, '', window.location.pathname + window.location.search);
+async function handleToken(token) {
   GD.token = token;
   localStorage.setItem('vb_gd_token', token);
   try {
-    const uResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    const u = await (await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: 'Bearer ' + token }
-    });
-    const u = await uResp.json();
+    })).json();
     GD.user = u.name || u.email || 'Google account';
   } catch(e) { GD.user = 'Google account'; }
   GD.ready = true;
   setDriveUI('connected');
   toast('Connected to Google Drive ✓');
-  navigate('drive');
   await driveLoad();
 }
 
-// Find the vitabrief-data.json file in Drive
+async function checkOAuthRedirect() {
+  const hash = window.location.hash;
+  if (hash.includes('access_token')) {
+    const params = new URLSearchParams(hash.slice(1));
+    const token = params.get('access_token');
+    if (token) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      await handleToken(token);
+      navigate('drive');
+      return;
+    }
+  }
+  // Try restoring saved token
+  const saved = localStorage.getItem('vb_gd_token');
+  if (saved) {
+    try {
+      const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + saved }});
+      if (r.ok) {
+        const u = await r.json();
+        GD.token = saved; GD.user = u.name || u.email || 'Google account'; GD.ready = true;
+        setDriveUI('connected');
+      } else { localStorage.removeItem('vb_gd_token'); }
+    } catch(e) { localStorage.removeItem('vb_gd_token'); }
+  }
+}
+
+
 async function findDriveFile() {
   const resp = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=name='${GD.FILENAME}'+and+trashed=false&fields=files(id,name,modifiedTime)&spaces=drive`,
