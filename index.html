@@ -1095,9 +1095,11 @@ async function handleToken(token) {
 async function checkOAuthRedirect() {
   // Case 1: returning from Google redirect with token in hash
   if (window.location.hash.includes('access_token')) {
-    const p = new URLSearchParams(window.location.hash.slice(1));
-    const token = p.get('access_token');
-    if (token) {
+    // Google sometimes adds extra params before access_token, use regex to extract
+    const hashStr = window.location.hash;
+    const tokenMatch = hashStr.match(/[#&]access_token=([^&]+)/);
+    if (tokenMatch) {
+      const token = decodeURIComponent(tokenMatch[1]);
       history.replaceState(null, '', window.location.pathname);
       await handleToken(token);
       navigate('drive');
