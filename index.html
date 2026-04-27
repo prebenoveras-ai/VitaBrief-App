@@ -432,6 +432,37 @@ a{color:var(--green);text-decoration:none}
     <div class="panel"><div class="ph"><div><h3>Activity breakdown</h3><p>Screenshot types across all saved days</p></div></div><div id="actChart"><div class="empty"><p>Save days to see this</p></div></div></div>
   </div>
 
+  <!-- DRIVE -->
+  <div class="page" id="pg-drive">
+    <div class="panel" style="background:var(--green-bg);border-color:var(--green-border)">
+      <div class="ph"><div><h3>☁️ Google Drive Sync</h3><p>Save and load your data across all devices</p></div><div class="drive-dot off" id="driveDot2"></div></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--s1);border-radius:var(--r);margin-bottom:14px;border:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600" id="driveName2">Not connected</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono)" id="driveStatus2">Sign in to enable sync</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <button class="btn btn-green" id="driveSignBtn2" style="justify-content:center">🔐 Sign In with Google</button>
+        <button class="btn btn-ghost" id="driveSyncBtn2" style="justify-content:center" disabled>☁️ Sync Now</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.7;background:var(--s2);padding:12px;border-radius:var(--r);border:1px solid var(--border)">
+        <b style="color:var(--text)">How it works:</b><br>
+        Your data saves to a file called <code style="background:var(--s3);padding:1px 5px;border-radius:4px;font-size:11px">vitabrief-data.json</code> in your Google Drive.<br><br>
+        Sign in on your phone <em>and</em> your PC with the same Google account — both stay in sync automatically every time you save a day.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><div><h3>Quick actions</h3></div></div>
+      <div style="display:grid;gap:8px">
+        <button class="btn btn-ghost" id="driveLoadBtn" style="justify-content:flex-start;gap:12px" disabled><span style="font-size:18px">⬇️</span><div style="text-align:left"><div style="font-size:13px;font-weight:500">Load from Drive</div><div style="font-size:11px;color:var(--muted)">Pull latest data from your Google Drive</div></div></button>
+        <button class="btn btn-ghost" id="drivePushBtn" style="justify-content:flex-start;gap:12px" disabled><span style="font-size:18px">⬆️</span><div style="text-align:left"><div style="font-size:13px;font-weight:500">Save to Drive</div><div style="font-size:11px;color:var(--muted)">Push today's data to your Google Drive</div></div></button>
+        <button class="btn btn-ghost" id="exportBtn2" style="justify-content:flex-start;gap:12px"><span style="font-size:18px">💾</span><div style="text-align:left"><div style="font-size:13px;font-weight:500">Export JSON</div><div style="font-size:11px;color:var(--muted)">Download all data as a backup file</div></div></button>
+      </div>
+    </div>
+  </div>
+
   <!-- HISTORY -->
   <div class="page" id="pg-history">
     <div class="panel" style="background:var(--blue-bg);border-color:rgba(96,165,250,.3)">
@@ -464,7 +495,7 @@ a{color:var(--green);text-decoration:none}
     <button class="mobitem on" data-pg="today"><span class="mico">📋</span>Brief</button>
     <button class="mobitem" data-pg="upload"><span class="mico">📸</span>Upload</button>
     <button class="mobitem" data-pg="checkin"><span class="mico">✏️</span>Check-in</button>
-    <button class="mobitem" data-pg="ai"><span class="mico">🤖</span>AI</button>
+    <button class="mobitem" data-pg="drive"><span class="mico">☁️</span>Drive</button>
     <button class="mobitem" data-pg="history"><span class="mico">🗂️</span>History</button>
   </div>
 </nav>
@@ -566,6 +597,7 @@ const PAGE_INFO = {
   upload: ['Upload Screenshots','Drop images from your health apps'],
   checkin: ['Daily Check-In','How are you feeling today?'],
   ai: ['AI Health Coach','Ask anything about your health data'],
+  drive: ['Google Drive Sync','Save and load your data across all devices'],
   trends: ['Trends','Patterns across your saved days'],
   history: ['History','Your full daily archive']
 };
@@ -1181,6 +1213,38 @@ g('saveBtn').addEventListener('click', async () => {
   if (GD.ready) await driveSave();
 }, true); // capture phase so it fires after the main saveBtn handler
 
+g('driveSignBtn2').addEventListener('click', driveSignIn);
+g('driveSyncBtn2').addEventListener('click', async () => {
+  if (!GD.ready) { toast('Sign in to Google Drive first','err'); return; }
+  await driveLoad(); await driveSave();
+});
+g('driveLoadBtn').addEventListener('click', async () => { if (GD.ready) await driveLoad(); });
+g('drivePushBtn').addEventListener('click', async () => { if (GD.ready) await driveSave(); });
+g('exportBtn2').addEventListener('click', () => g('exportBtn').click());
+
+// Keep both Drive UIs in sync
+const _origSetDriveUI = setDriveUI;
+function setDriveUI(state) {
+  _origSetDriveUI(state);
+  const dot2 = g('driveDot2'), name2 = g('driveName2'), status2 = g('driveStatus2');
+  const signBtn2 = g('driveSignBtn2'), syncBtn2 = g('driveSyncBtn2');
+  const loadBtn = g('driveLoadBtn'), pushBtn = g('drivePushBtn');
+  dot2.className = 'drive-dot' + (state==='off'?' off':state==='syncing'?' sync':'');
+  if (state === 'off') {
+    name2.textContent = 'Not connected'; status2.textContent = 'Sign in to enable sync';
+    signBtn2.textContent = '🔐 Sign In with Google'; signBtn2.disabled = false;
+    syncBtn2.disabled = true; loadBtn.disabled = true; pushBtn.disabled = true;
+  } else if (state === 'connected') {
+    name2.textContent = GD.user || 'Google account';
+    status2.textContent = 'Connected · vitabrief-data.json';
+    signBtn2.textContent = '🚪 Sign Out'; signBtn2.disabled = false;
+    syncBtn2.disabled = false; loadBtn.disabled = false; pushBtn.disabled = false;
+  } else if (state === 'syncing') {
+    status2.textContent = 'Syncing…'; syncBtn2.disabled = true;
+  } else if (state === 'error') {
+    status2.textContent = 'Error — try again';
+  }
+}
 setDriveUI('off');
 
 // ── INIT ───────────────────────────────────────────────────────────────────
